@@ -34,8 +34,21 @@ class MicrobitTemperatureMonitor {
         this.chart = null;
         this.chartInitialized = false;
         
+        // Storage for persistent data
+        this.storage = new TemperatureStorage();
+        
+        // Date filter state
+        this.dateFilter = {
+            start: null,
+            end: null,
+            active: false
+        };
+        
         // Bind UI elements
         this.initUI();
+        
+        // Load stored data on startup
+        this.loadStoredData();
         
         // Load changelog
         this.loadChangelog();
@@ -68,11 +81,43 @@ class MicrobitTemperatureMonitor {
         // Debug log
         this.debugLog = document.getElementById('debugLog');
         
+        // Date filter elements
+        this.startDateInput = document.getElementById('startDate');
+        this.endDateInput = document.getElementById('endDate');
+        this.filterBtn = document.getElementById('filterBtn');
+        this.resetFilterBtn = document.getElementById('resetFilterBtn');
+        this.exportDataBtn = document.getElementById('exportDataBtn');
+        
+        // Quick filter buttons
+        this.quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
+        
+        // Stats elements
+        this.totalRecordsEl = document.getElementById('totalRecords');
+        this.storedRecordsEl = document.getElementById('storedRecords');
+        this.oldestRecordEl = document.getElementById('oldestRecord');
+        
         // Event listeners
         this.connectBtn.addEventListener('click', () => this.connect());
         this.disconnectBtn.addEventListener('click', () => this.disconnect());
         this.clearChartBtn.addEventListener('click', () => this.clearChart());
         this.clearLogBtn.addEventListener('click', () => this.clearLog());
+        
+        // Date filter listeners
+        this.filterBtn.addEventListener('click', () => this.applyDateFilter());
+        this.resetFilterBtn.addEventListener('click', () => this.resetDateFilter());
+        this.exportDataBtn.addEventListener('click', () => this.exportData());
+        
+        // Quick filter listeners
+        this.quickFilterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const hours = parseInt(e.target.dataset.hours);
+                this.applyQuickFilter(hours);
+                
+                // Update active state
+                this.quickFilterBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
         
         // Initialize chart after DOM is ready
         setTimeout(() => this.initChart(), 100);
@@ -373,10 +418,220 @@ class MicrobitTemperatureMonitor {
             }
             
             this.log('Sıcaklık güncellendi: ' + temp.toFixed(1) + '°C', 'success');
+            
+            // Save to persistent storage
+            this.storage.saveReading(temp, timestamp);
+            this.updateStats();
+            
         } catch (error) {
             this.log('Sıcaklık güncelleme hatası: ' + error.message, 'error');
             console.error('Temperature update error:', error);
         }
+    }
+    
+    loadStoredData() {
+        try {
+            const stats = this.storage.getStats();
+            this.log(`Saklanan veriler yüklendi: ${stats.total} kayıt`, 'info');
+            
+            if (stats.total > 0) {
+                this.log(`En eski kayıt: ${stats.oldest.toLocaleString('tr-TR')}`, 'info');
+                
+                // Load last 1 hour by default
+                this.applyQuickFilter(1);
+            }
+            
+            this.updateStats();
+        } catch (error) {
+            console.error('Load stored data error:', error);
+        }
+    }
+    
+    updateStats() {
+        const stats = this.storage.getStats();
+        
+        this.totalRecordsEl.textContent = this.temperatures.length;
+        this.storedRecordsEl.textContent = stats.total;
+        
+        if (stats.oldest) {
+            this.oldestRecordEl.textContent = stats.oldest.toLocaleDateString('tr-TR');
+        } else {
+            this.oldestRecordEl.textContent = '--';
+        }
+    }
+    
+    applyDateFilter() {
+        const start = this.startDateInput.value;
+        const end = this.endDateInput.value;
+        
+        if (!start || !end) {
+            alert('Lütfen başlangıç ve bitiş tarihi seçin!');
+            return;
+        }
+        
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        
+        if (startDate > endDate) {
+            alert('Başlangıç tarihi bitiş tarihinden önce olmalı!');
+            return;
+        }
+        
+        this.dateFilter = {
+            start: startDate,
+            end: endDate,
+            active: true
+        };
+        
+        this.loadFilteredData();
+        this.log(`Filtre uygulandı: ${startDate.toLocaleString('tr-TR')} - ${endDate.toLocaleString('tr-TR')}`, 'info');
+        
+        // Clear active quick filter
+        this.quickFilterBtns.forEach(b => b.classList.remove('active'));
+    }
+    
+    resetDateFilter() {
+        this.dateFilter = {
+            start: null,
+            end: null,
+            active: false
+        };
+        
+        this.startDateInput.value = '';
+        this.endDateInput.value = '';
+        
+        // Clear active quick filter
+        this.quickFilterBtns.forEach(b => b.classList.remove('active'));
+        
+        // Reload all current session data
+        this.log('Filtre sıfırlandı', 'info');
+        
+        if (this.chart) {
+            this.chart.clear();
+        }
+    }
+    
+    applyQuickFilter(hours) {
+        const data = this.storage.getLastNHours(hours);
+        
+        if (data.length === 0) {
+            this.log(`Son ${hours} saatte veri bulunamadı`, 'warning');
+            return;
+        }
+        
+        this.log(`Son ${hours} saat yükleniyor: ${data.length} kayıt`, 'info');
+        
+        // Clear current chart
+        if (this.chart) {
+            this.chart.clear();
+        }
+        
+        // Load filtered data
+        this.temperatures = [];
+        this.minTemp = null;
+        this.maxTemp = null;
+        
+        data.forEach(reading => {
+            this.temperatures.push(reading.temp);
+            
+            if (this.minTemp === null || reading.temp < this.minTemp) {
+                this.minTemp = reading.temp;
+            }
+            if (this.maxTemp === null || reading.temp > this.maxTemp) {
+                this.maxTemp = reading.temp;
+            }
+            
+            if (this.chart) {
+                this.chart.addDataPoint(reading.temp, reading.timestamp);
+            }
+        });
+        
+        // Update display
+        if (this.temperatures.length > 0) {
+            const sum = this.temperatures.reduce((a, b) => a + b, 0);
+            this.avgTemp = sum / this.temperatures.length;
+            
+            this.minTempEl.textContent = this.minTemp.toFixed(1);
+            this.maxTempEl.textContent = this.maxTemp.toFixed(1);
+            this.avgTempEl.textContent = this.avgTemp.toFixed(1);
+            this.currentTempEl.textContent = this.temperatures[this.temperatures.length - 1].toFixed(1);
+        }
+    }
+    
+    loadFilteredData() {
+        if (!this.dateFilter.active) return;
+        
+        const data = this.storage.getReadingsByDateRange(this.dateFilter.start, this.dateFilter.end);
+        
+        if (data.length === 0) {
+            this.log('Seçilen tarih aralığında veri bulunamadı', 'warning');
+            return;
+        }
+        
+        // Clear current chart
+        if (this.chart) {
+            this.chart.clear();
+        }
+        
+        // Load filtered data
+        this.temperatures = [];
+        this.minTemp = null;
+        this.maxTemp = null;
+        
+        data.forEach(reading => {
+            this.temperatures.push(reading.temp);
+            
+            if (this.minTemp === null || reading.temp < this.minTemp) {
+                this.minTemp = reading.temp;
+            }
+            if (this.maxTemp === null || reading.temp > this.maxTemp) {
+                this.maxTemp = reading.temp;
+            }
+            
+            if (this.chart) {
+                this.chart.addDataPoint(reading.temp, reading.timestamp);
+            }
+        });
+        
+        // Update display
+        if (this.temperatures.length > 0) {
+            const sum = this.temperatures.reduce((a, b) => a + b, 0);
+            this.avgTemp = sum / this.temperatures.length;
+            
+            this.minTempEl.textContent = this.minTemp.toFixed(1);
+            this.maxTempEl.textContent = this.maxTemp.toFixed(1);
+            this.avgTempEl.textContent = this.avgTemp.toFixed(1);
+            this.currentTempEl.textContent = this.temperatures[this.temperatures.length - 1].toFixed(1);
+        }
+        
+        this.log(`${data.length} kayıt yüklendi`, 'success');
+    }
+    
+    exportData() {
+        const csv = this.storage.exportToCSV();
+        
+        if (csv === 'No data to export') {
+            alert('Dışa aktarılacak veri yok!');
+            return;
+        }
+        
+        // Create download link
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const now = new Date();
+        const filename = `microbit_sicaklik_${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.log(`Veriler dışa aktarıldı: ${filename}`, 'success');
     }
     
     clearChart() {

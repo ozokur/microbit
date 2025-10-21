@@ -2,6 +2,49 @@
 
 Micro:bit Sıcaklık İzleme Sistemi için tüm önemli değişiklikler bu dosyada belgelenmiştir.
 
+## [1.3.0] - 2025-10-21
+
+### 🎯 Yeni Özellikler - Veri Saklama ve Filtreleme
+- **LocalStorage ile 1 Aylık Veri Saklama** 💾
+  - Tüm sıcaklık okumaları otomatik kaydediliyor
+  - 30 gün boyunca veri saklanıyor
+  - Otomatik veri temizleme (eski veriler siliniyor)
+  
+- **Tarih/Saat Filtreleme** 📅
+  - Başlangıç ve bitiş tarihi seçimi
+  - Özel tarih aralığı filtreleme
+  - Anlık filtre uygulama
+  
+- **Hızlı Filtreler** ⚡
+  - Son 1 Saat
+  - Son 24 Saat  
+  - Son 1 Hafta
+  - Son 1 Ay
+  
+- **CSV Export** 📊
+  - Tüm veriler CSV formatında indirilebilir
+  - Tarih, saat, sıcaklık bilgileri
+  - Excel uyumlu format
+
+### Yeni UI Bileşenleri
+- Date/time picker input'ları
+- Quick filter butonları
+- Veri istatistikleri paneli (Toplam Kayıt, Saklanan, En Eski)
+- Export butonu
+
+### Teknik Detaylar
+- `storage.js` - LocalStorage yönetimi
+- Quota exceeded error handling
+- Otomatik veri temizleme (30 günden eski)
+- Filtrelenmiş veri chart'a yükleme
+- CSV export fonksiyonu
+
+### İyileştirmeler
+- Uygulama başlarken saklı veriler yükleniyor
+- Filtre aktifken yeni veriler kaydediliyor
+- Responsive date filter layout
+- Veri istatistikleri real-time güncelleniyor
+
 ## [1.2.0] - 2025-10-21
 
 ### 🎯 Yeni Özellikler

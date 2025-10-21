@@ -88,10 +88,45 @@
                         <button id="clearChartBtn" class="btn btn-small">
                             Grafiği Temizle
                         </button>
+                        <button id="exportDataBtn" class="btn btn-small">
+                            📊 CSV İndir
+                        </button>
                     </div>
                 </div>
+                
+                <!-- Date Range Filter -->
+                <div class="date-filter">
+                    <div class="filter-group">
+                        <label>Başlangıç:</label>
+                        <input type="datetime-local" id="startDate" class="date-input">
+                    </div>
+                    <div class="filter-group">
+                        <label>Bitiş:</label>
+                        <input type="datetime-local" id="endDate" class="date-input">
+                    </div>
+                    <div class="filter-group">
+                        <button id="filterBtn" class="btn btn-small">Filtrele</button>
+                        <button id="resetFilterBtn" class="btn btn-small">Sıfırla</button>
+                    </div>
+                </div>
+                
+                <!-- Quick Filters -->
+                <div class="quick-filters">
+                    <button class="quick-filter-btn" data-hours="1">Son 1 Saat</button>
+                    <button class="quick-filter-btn" data-hours="24">Son 24 Saat</button>
+                    <button class="quick-filter-btn" data-hours="168">Son 1 Hafta</button>
+                    <button class="quick-filter-btn" data-hours="720">Son 1 Ay</button>
+                </div>
+                
                 <div class="chart-container">
                     <canvas id="tempChart"></canvas>
+                </div>
+                
+                <!-- Data Statistics -->
+                <div class="data-stats">
+                    <span>📊 Toplam Kayıt: <strong id="totalRecords">0</strong></span>
+                    <span>💾 Saklanan: <strong id="storedRecords">0</strong></span>
+                    <span>🗓️ En Eski: <strong id="oldestRecord">--</strong></span>
                 </div>
             </div>
 
@@ -116,8 +151,9 @@
         </div>
     </div>
 
-    <script src="chart.js?v=1.2.2"></script>
-    <script src="app.js?v=1.2.2"></script>
+    <script src="storage.js?v=1.3.0"></script>
+    <script src="chart.js?v=1.3.0"></script>
+    <script src="app.js?v=1.3.0"></script>
 </body>
 </html>
 
