@@ -188,17 +188,22 @@ class MicrobitTemperatureMonitor {
     handleUSBData(message) {
         this.log('USB: ' + message, 'info');
         
-        // Parse temperature data: TEMP:value:timestamp
-        if (message.startsWith('TEMP:')) {
-            const parts = message.split(':');
-            if (parts.length >= 2) {
-                const temperature = parseFloat(parts[1]);
-                const timestamp = parts.length >= 3 ? parseInt(parts[2]) : Date.now();
-                
-                if (!isNaN(temperature)) {
-                    this.updateTemperature(temperature, timestamp);
+        try {
+            // Parse temperature data: TEMP:value:timestamp
+            if (message.startsWith('TEMP:')) {
+                const parts = message.split(':');
+                if (parts.length >= 2) {
+                    const temperature = parseFloat(parts[1]);
+                    const timestamp = parts.length >= 3 ? parseInt(parts[2]) : Date.now();
+                    
+                    if (!isNaN(temperature)) {
+                        this.updateTemperature(temperature, timestamp);
+                    }
                 }
             }
+        } catch (error) {
+            this.log('Veri işleme hatası: ' + error.message, 'error');
+            console.error('USB data handling error:', error);
         }
     }
     
@@ -330,38 +335,48 @@ class MicrobitTemperatureMonitor {
     }
     
     updateTemperature(temp, timestamp) {
-        // Update current temperature display
-        this.currentTempEl.textContent = temp.toFixed(1);
-        
-        // Add to statistics
-        this.temperatures.push(temp);
-        
-        // Update min/max/avg
-        if (this.minTemp === null || temp < this.minTemp) {
-            this.minTemp = temp;
-            this.minTempEl.textContent = temp.toFixed(1);
+        try {
+            // Update current temperature display
+            this.currentTempEl.textContent = temp.toFixed(1);
+            
+            // Add to statistics
+            this.temperatures.push(temp);
+            
+            // Update min/max/avg
+            if (this.minTemp === null || temp < this.minTemp) {
+                this.minTemp = temp;
+                this.minTempEl.textContent = temp.toFixed(1);
+            }
+            
+            if (this.maxTemp === null || temp > this.maxTemp) {
+                this.maxTemp = temp;
+                this.maxTempEl.textContent = temp.toFixed(1);
+            }
+            
+            const sum = this.temperatures.reduce((a, b) => a + b, 0);
+            this.avgTemp = sum / this.temperatures.length;
+            this.avgTempEl.textContent = this.avgTemp.toFixed(1);
+            
+            // Initialize chart on first data point (lazy initialization)
+            if (!this.chartInitialized) {
+                this.initChart();
+            }
+            
+            // Update chart (only if initialized)
+            if (this.chart && this.chartInitialized) {
+                try {
+                    this.chart.addDataPoint(temp, timestamp);
+                } catch (chartError) {
+                    console.warn('Chart update error:', chartError);
+                    // Chart'ta hata olsa bile devam et
+                }
+            }
+            
+            this.log('Sıcaklık güncellendi: ' + temp.toFixed(1) + '°C', 'success');
+        } catch (error) {
+            this.log('Sıcaklık güncelleme hatası: ' + error.message, 'error');
+            console.error('Temperature update error:', error);
         }
-        
-        if (this.maxTemp === null || temp > this.maxTemp) {
-            this.maxTemp = temp;
-            this.maxTempEl.textContent = temp.toFixed(1);
-        }
-        
-        const sum = this.temperatures.reduce((a, b) => a + b, 0);
-        this.avgTemp = sum / this.temperatures.length;
-        this.avgTempEl.textContent = this.avgTemp.toFixed(1);
-        
-        // Initialize chart on first data point (lazy initialization)
-        if (!this.chartInitialized) {
-            this.initChart();
-        }
-        
-        // Update chart
-        if (this.chart) {
-            this.chart.addDataPoint(temp, timestamp);
-        }
-        
-        this.log('Sıcaklık güncellendi: ' + temp.toFixed(1) + '°C', 'success');
     }
     
     clearChart() {
