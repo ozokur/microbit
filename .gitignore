@@ -1,0 +1,53 @@
+# Micro:bit Sıcaklık İzleme - Git Ignore
+
+# Server PID
+.server.pid
+
+# Logs
+*.log
+server.log
+microbit_serial.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Hex files (generated)
+*.hex
+
+# Screen logs
+screenlog.*
+
+# Test files
+test_*.txt
+debug_*.txt
+
