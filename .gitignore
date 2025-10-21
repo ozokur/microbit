@@ -1,7 +1,8 @@
 # Micro:bit Sıcaklık İzleme - Git Ignore
 
-# Server PID
+# Server PID and logs
 .server.pid
+server.log
 
 # Logs
 *.log

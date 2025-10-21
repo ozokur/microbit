@@ -69,17 +69,32 @@ Micro:bit ekranında kalp ikonu görmelisiniz. Bu, programın çalıştığını
 
 ### Web Uygulamasını Başlatın
 
-1. Proje klasöründe bir web sunucusu başlatın:
+#### 🖱️ Çift Tıklama ile (Kolay Yöntem)
+
+**macOS:**
+- `START_SERVER.command` dosyasına çift tıklayın 🚀
+- Sunucu otomatik başlar ve tarayıcı açılır!
+- Durdurmak için: `STOP_SERVER.command` çift tıklayın 🛑
+
+**Windows:**
+- `START_SERVER.bat` dosyasına çift tıklayın 🚀
+- Sunucu otomatik başlar ve tarayıcı açılır!
+- Durdurmak için: `STOP_SERVER.bat` çift tıklayın 🛑
+
+#### 💻 Terminal ile (Alternatif)
 
 ```bash
-# Python ile
-python3 -m http.server 8000
+# Başlatma
+./start.sh
 
-# veya Node.js ile
-npx http-server -p 8000
+# Durdurma
+./stop.sh
+
+# veya Python ile manuel
+python3 -m http.server 8000
 ```
 
-2. Tarayıcınızda açın: `http://localhost:8000`
+Tarayıcınızda açın: `http://localhost:8000`
 
 ### Micro:bit'e Bağlanın
 
