@@ -30,8 +30,13 @@ class MicrobitTemperatureMonitor {
         this.maxTemp = null;
         this.avgTemp = null;
         
-        // Initialize chart
-        this.chart = new TemperatureChart('tempChart');
+        // Initialize chart (with error handling)
+        try {
+            this.chart = new TemperatureChart('tempChart');
+        } catch (error) {
+            console.error('Chart initialization error:', error);
+            this.chart = null;
+        }
         
         // Bind UI elements
         this.initUI();
@@ -328,13 +333,19 @@ class MicrobitTemperatureMonitor {
         this.avgTempEl.textContent = this.avgTemp.toFixed(1);
         
         // Update chart
-        this.chart.addDataPoint(temp, timestamp);
+        if (this.chart) {
+            this.chart.addDataPoint(temp, timestamp);
+        } else {
+            console.warn('Chart not initialized yet');
+        }
         
         this.log('Sıcaklık güncellendi: ' + temp.toFixed(1) + '°C', 'success');
     }
     
     clearChart() {
-        this.chart.clear();
+        if (this.chart) {
+            this.chart.clear();
+        }
         this.temperatures = [];
         this.minTemp = null;
         this.maxTemp = null;

@@ -2,6 +2,11 @@
 class TemperatureChart {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
+        
+        if (!this.canvas) {
+            throw new Error(`Canvas element '${canvasId}' bulunamadı!`);
+        }
+        
         this.ctx = this.canvas.getContext('2d');
         this.dataPoints = [];
         this.maxDataPoints = 60; // Show last 60 readings
