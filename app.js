@@ -30,13 +30,9 @@ class MicrobitTemperatureMonitor {
         this.maxTemp = null;
         this.avgTemp = null;
         
-        // Initialize chart (with error handling)
-        try {
-            this.chart = new TemperatureChart('tempChart');
-        } catch (error) {
-            console.error('Chart initialization error:', error);
-            this.chart = null;
-        }
+        // Chart will be initialized lazily
+        this.chart = null;
+        this.chartInitialized = false;
         
         // Bind UI elements
         this.initUI();
@@ -78,6 +74,9 @@ class MicrobitTemperatureMonitor {
         this.clearChartBtn.addEventListener('click', () => this.clearChart());
         this.clearLogBtn.addEventListener('click', () => this.clearLog());
         
+        // Initialize chart after DOM is ready
+        setTimeout(() => this.initChart(), 100);
+        
         // Radio button change
         this.connectionTypeRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
@@ -85,6 +84,26 @@ class MicrobitTemperatureMonitor {
                 this.log(`Bağlantı tipi değiştirildi: ${this.connectionType === 'usb' ? 'USB Serial 🔌' : 'Bluetooth 🔵'}`, 'info');
             });
         });
+    }
+    
+    initChart() {
+        if (this.chartInitialized) return;
+        
+        try {
+            if (typeof TemperatureChart === 'undefined') {
+                console.warn('TemperatureChart class not loaded yet, retrying...');
+                setTimeout(() => this.initChart(), 200);
+                return;
+            }
+            
+            this.chart = new TemperatureChart('tempChart');
+            this.chartInitialized = true;
+            this.log('Grafik başlatıldı', 'success');
+        } catch (error) {
+            console.error('Chart initialization error:', error);
+            this.log('Grafik hatası: ' + error.message, 'error');
+            this.chart = null;
+        }
     }
     
     async connect() {
@@ -332,11 +351,14 @@ class MicrobitTemperatureMonitor {
         this.avgTemp = sum / this.temperatures.length;
         this.avgTempEl.textContent = this.avgTemp.toFixed(1);
         
+        // Initialize chart on first data point (lazy initialization)
+        if (!this.chartInitialized) {
+            this.initChart();
+        }
+        
         // Update chart
         if (this.chart) {
             this.chart.addDataPoint(temp, timestamp);
-        } else {
-            console.warn('Chart not initialized yet');
         }
         
         this.log('Sıcaklık güncellendi: ' + temp.toFixed(1) + '°C', 'success');
