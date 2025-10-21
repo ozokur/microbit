@@ -41,7 +41,11 @@ log_debug("Starting main loop...")
 
 # Main loop
 last_reading = running_time()
+
+# Show startup animation
 display.show(Image.HEART)
+sleep(1000)
+display.scroll("diplomasiz erdogan", delay=100)
 
 while True:
     current_time = running_time()
