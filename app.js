@@ -144,6 +144,17 @@ class MicrobitTemperatureMonitor {
             this.chart = new TemperatureChart('tempChart');
             this.chartInitialized = true;
             this.log('Grafik başlatıldı', 'success');
+            
+            // Load stored data after chart is ready
+            const stats = this.storage.getStats();
+            if (stats.total > 0) {
+                this.log(`Saklı veriler bulundu: ${stats.total} kayıt`, 'info');
+                // Automatically load last 1 hour
+                this.applyQuickFilter(1);
+                // Set active button
+                const firstBtn = document.querySelector('.quick-filter-btn[data-hours="1"]');
+                if (firstBtn) firstBtn.classList.add('active');
+            }
         } catch (error) {
             console.error('Chart initialization error:', error);
             this.log('Grafik hatası: ' + error.message, 'error');
@@ -432,16 +443,17 @@ class MicrobitTemperatureMonitor {
     loadStoredData() {
         try {
             const stats = this.storage.getStats();
-            this.log(`Saklanan veriler yüklendi: ${stats.total} kayıt`, 'info');
             
             if (stats.total > 0) {
+                this.log(`Saklanan veriler: ${stats.total} kayıt`, 'info');
                 this.log(`En eski kayıt: ${stats.oldest.toLocaleString('tr-TR')}`, 'info');
-                
-                // Load last 1 hour by default
-                this.applyQuickFilter(1);
+            } else {
+                this.log('Henüz saklı veri yok', 'info');
             }
             
             this.updateStats();
+            
+            // Note: Actual data loading happens in initChart() after chart is ready
         } catch (error) {
             console.error('Load stored data error:', error);
         }
@@ -515,11 +527,19 @@ class MicrobitTemperatureMonitor {
         const data = this.storage.getLastNHours(hours);
         
         if (data.length === 0) {
-            this.log(`Son ${hours} saatte veri bulunamadı`, 'warning');
+            const hourText = hours === 1 ? '1 saat' : 
+                            hours === 24 ? '24 saat' : 
+                            hours === 168 ? '1 hafta' : 
+                            hours === 720 ? '1 ay' : `${hours} saat`;
+            this.log(`Son ${hourText}te veri bulunamadı`, 'warning');
             return;
         }
         
-        this.log(`Son ${hours} saat yükleniyor: ${data.length} kayıt`, 'info');
+        const hourText = hours === 1 ? '1 saat' : 
+                        hours === 24 ? '24 saat' : 
+                        hours === 168 ? '1 hafta' : 
+                        hours === 720 ? '1 ay' : `${hours} saat`;
+        this.log(`Son ${hourText} yüklendi: ${data.length} kayıt`, 'success');
         
         // Clear current chart
         if (this.chart) {
