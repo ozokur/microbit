@@ -96,7 +96,7 @@ npx http-server -p 8000
 ### Micro:bit Butonları
 
 - **Buton A**: Manuel sıcaklık ölçümü ve ekranda gösterme
-- **Buton B**: Durum kontrolü (ekranda "OK" gösterir)
+- **Buton B**: Bluetooth pairing yardımı (ekranda "BT" + talimatlar)
 
 ## 🔧 Teknik Detaylar
 

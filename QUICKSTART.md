@@ -38,8 +38,11 @@ python3 -m http.server 8000
 ### Buton A - Manuel Okuma
 Micro:bit'te **A butonuna** basın → Ekranda sıcaklık değeri gösterilecek
 
-### Buton B - Durum Kontrolü  
-Micro:bit'te **B butonuna** basın → Ekranda "OK" gösterilecek
+### Buton B - Bluetooth Pairing Yardımı 🔵
+Micro:bit'te **B butonuna** basın → Pairing talimatları gösterilecek
+- Ekranda "BT" animasyonu
+- Debug log'da bağlantı adımları
+- Bluetooth'a hazır olduğunu gösterir
 
 ## 📊 Özellikler
 

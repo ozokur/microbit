@@ -1,5 +1,5 @@
 # Micro:bit Temperature Monitor with Bluetooth
-# Version: 1.0.0
+# Version: 1.1.0
 # This program reads temperature from the Micro:bit sensor and broadcasts it via Bluetooth
 
 from microbit import *
@@ -33,8 +33,10 @@ def send_bluetooth(data):
 
 # Startup message
 log_debug("=== Micro:bit Temperature Monitor ===")
-log_debug("Version: 1.0.0")
+log_debug("Version: 1.1.0")
 log_debug("Bluetooth UART enabled")
+log_debug("Button A: Manual temperature reading")
+log_debug("Button B: Bluetooth pairing mode")
 log_debug("Starting main loop...")
 
 # Main loop
@@ -72,8 +74,29 @@ while True:
         display.scroll(str(temp))
     
     if button_b.was_pressed():
-        log_debug("Button B pressed - Status check")
-        display.scroll("OK")
+        log_debug("Button B pressed - Bluetooth Pairing Mode")
+        # Show Bluetooth pairing animation
+        display.show(Image.DIAMOND)
+        sleep(200)
+        display.show(Image.DIAMOND_SMALL)
+        sleep(200)
+        
+        # Show "BT" for Bluetooth
+        display.scroll("BT", delay=80)
+        
+        # Show pairing instructions
+        display.show(Image.ARROW_W)  # Point to computer
+        sleep(500)
+        
+        # Log pairing info
+        log_debug("=== BLUETOOTH PAIRING MODE ===")
+        log_debug("1. Web uygulamasinda 'Baglan' tiklayin")
+        log_debug("2. 'BBC micro:bit' secin")
+        log_debug("3. 'Eslestir' tiklayin")
+        log_debug("==============================")
+        
+        # Return to normal display
+        display.show(Image.HEART)
     
     # Small delay to prevent busy-waiting
     sleep(100)

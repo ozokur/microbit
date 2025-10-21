@@ -2,6 +2,21 @@
 
 Micro:bit Sıcaklık İzleme Sistemi için tüm önemli değişiklikler bu dosyada belgelenmiştir.
 
+## [1.1.0] - 2025-10-21
+
+### Değişiklikler
+- **B Tuşu Güncellemesi:** Artık Bluetooth pairing mode bilgilerini gösteriyor
+  - Ekranda "BT" animasyonu
+  - USB debug üzerinden pairing talimatları
+  - Kullanıcı dostu görsel geri bildirim
+- Versiyon 1.0.0 → 1.1.0
+- Başlangıç mesajlarına buton açıklamaları eklendi
+
+### İyileştirmeler
+- B tuşuna basınca pairing talimatları gösteriliyor
+- Debug log'da adım adım bağlantı rehberi
+- Daha iyi kullanıcı deneyimi
+
 ## [1.0.0] - 2025-10-21
 
 ### Eklenenler
