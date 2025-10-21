@@ -5,7 +5,9 @@ Micro:bit'in dahili sıcaklık sensöründen gerçek zamanlı veri okuyup, Bluet
 ## ✨ Özellikler
 
 - 📊 **Gerçek Zamanlı Grafik**: Canvas tabanlı, otomatik ölçeklendirilmiş sıcaklık trendi
-- 🔵 **Bluetooth Bağlantısı**: Web Bluetooth API ile kablosuz veri aktarımı
+- 🔌 **İki Bağlantı Seçeneği**: 
+  - **USB Serial**: Hızlı, stabil, kablolu bağlantı (Web Serial API)
+  - **Bluetooth**: Kablosuz bağlantı (Web Bluetooth API)
 - 📈 **İstatistikler**: Minimum, maksimum ve ortalama değer takibi
 - 🐛 **Debug Modu**: Detaylı log sistemi ve hata ayıklama özellikleri
 - 📱 **Responsive Tasarım**: Mobil ve masaüstü uyumlu modern arayüz

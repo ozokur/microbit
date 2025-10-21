@@ -1,16 +1,25 @@
 // Main Application Logic
-// Web Bluetooth API integration for Micro:bit communication
+// Web Bluetooth API + Web Serial API integration for Micro:bit communication
 
 class MicrobitTemperatureMonitor {
     constructor() {
+        // Connection state
+        this.connectionType = 'usb'; // 'usb' or 'bluetooth'
+        this.isConnected = false;
+        
+        // Bluetooth variables
         this.device = null;
         this.server = null;
         this.uartService = null;
         this.rxCharacteristic = null;
         this.txCharacteristic = null;
-        this.isConnected = false;
         
-        // UART service UUID for Micro:bit
+        // USB Serial variables
+        this.port = null;
+        this.reader = null;
+        this.readableStreamClosed = null;
+        
+        // UART service UUID for Micro:bit (Bluetooth)
         this.UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
         this.UART_RX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
         this.UART_TX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
@@ -31,7 +40,8 @@ class MicrobitTemperatureMonitor {
         this.loadChangelog();
         
         this.log('Uygulama başlatıldı', 'info');
-        this.log('Web Bluetooth API desteği: ' + (navigator.bluetooth ? 'Var' : 'Yok'), 'info');
+        this.log('Web Bluetooth API: ' + (navigator.bluetooth ? '✅' : '❌'), 'info');
+        this.log('Web Serial API: ' + ('serial' in navigator ? '✅' : '❌'), 'info');
     }
     
     initUI() {
@@ -40,6 +50,9 @@ class MicrobitTemperatureMonitor {
         this.disconnectBtn = document.getElementById('disconnectBtn');
         this.clearChartBtn = document.getElementById('clearChartBtn');
         this.clearLogBtn = document.getElementById('clearLogBtn');
+        
+        // Connection type radio buttons
+        this.connectionTypeRadios = document.querySelectorAll('input[name="connectionType"]');
         
         // Status elements
         this.statusIndicator = document.getElementById('statusIndicator');
@@ -59,15 +72,119 @@ class MicrobitTemperatureMonitor {
         this.disconnectBtn.addEventListener('click', () => this.disconnect());
         this.clearChartBtn.addEventListener('click', () => this.clearChart());
         this.clearLogBtn.addEventListener('click', () => this.clearLog());
+        
+        // Radio button change
+        this.connectionTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.connectionType = e.target.value;
+                this.log(`Bağlantı tipi değiştirildi: ${this.connectionType === 'usb' ? 'USB Serial 🔌' : 'Bluetooth 🔵'}`, 'info');
+            });
+        });
     }
     
     async connect() {
+        if (this.connectionType === 'usb') {
+            await this.connectUSB();
+        } else {
+            await this.connectBluetooth();
+        }
+    }
+    
+    async connectUSB() {
+        try {
+            if (!('serial' in navigator)) {
+                throw new Error('Web Serial API desteklenmiyor. Lütfen Chrome 89+ veya Edge 89+ kullanın.');
+            }
+            
+            this.log('USB Serial bağlantısı kuruluyor...', 'info');
+            this.updateStatus('USB Portu Seçiliyor...', false);
+            
+            // Request serial port
+            this.port = await navigator.serial.requestPort({
+                filters: [
+                    { usbVendorId: 0x0D28 } // BBC micro:bit USB vendor ID
+                ]
+            });
+            
+            this.log('USB port seçildi', 'success');
+            
+            // Open port
+            await this.port.open({ baudRate: 115200 });
+            this.log('Port açıldı (115200 baud)', 'success');
+            
+            this.isConnected = true;
+            this.updateStatus('USB ile Bağlı 🔌', true);
+            this.connectBtn.disabled = true;
+            this.disconnectBtn.disabled = false;
+            
+            // Start reading data
+            this.readUSBData();
+            
+        } catch (error) {
+            this.log('USB bağlantı hatası: ' + error.message, 'error');
+            console.error('USB connection error:', error);
+            this.updateStatus('Bağlantı Hatası', false);
+        }
+    }
+    
+    async readUSBData() {
+        try {
+            const textDecoder = new TextDecoderStream();
+            this.readableStreamClosed = this.port.readable.pipeTo(textDecoder.writable);
+            this.reader = textDecoder.readable.getReader();
+            
+            let buffer = '';
+            
+            while (true) {
+                const { value, done } = await this.reader.read();
+                if (done) {
+                    this.reader.releaseLock();
+                    break;
+                }
+                
+                buffer += value;
+                
+                // Process complete lines
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete line in buffer
+                
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed) {
+                        this.handleUSBData(trimmed);
+                    }
+                }
+            }
+        } catch (error) {
+            this.log('USB okuma hatası: ' + error.message, 'error');
+            console.error('USB read error:', error);
+        }
+    }
+    
+    handleUSBData(message) {
+        this.log('USB: ' + message, 'info');
+        
+        // Parse temperature data: TEMP:value:timestamp
+        if (message.startsWith('TEMP:')) {
+            const parts = message.split(':');
+            if (parts.length >= 2) {
+                const temperature = parseFloat(parts[1]);
+                const timestamp = parts.length >= 3 ? parseInt(parts[2]) : Date.now();
+                
+                if (!isNaN(temperature)) {
+                    this.updateTemperature(temperature, timestamp);
+                }
+            }
+        }
+    }
+    
+    async connectBluetooth() {
         try {
             if (!navigator.bluetooth) {
                 throw new Error('Web Bluetooth API desteklenmiyor. Lütfen Chrome veya Edge tarayıcısı kullanın.');
             }
             
-            this.log('Micro:bit aranıyor...', 'info');
+            this.log('Micro:bit aranıyor (Bluetooth)...', 'info');
             this.updateStatus('Aranıyor...', false);
             
             // Request Bluetooth device
@@ -95,7 +212,7 @@ class MicrobitTemperatureMonitor {
             // Start notifications
             await this.txCharacteristic.startNotifications();
             this.txCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-                this.handleData(event.target.value);
+                this.handleBluetoothData(event.target.value);
             });
             
             this.log('Bildirimler başlatıldı', 'success');
@@ -104,7 +221,7 @@ class MicrobitTemperatureMonitor {
             this.rxCharacteristic = await this.uartService.getCharacteristic(this.UART_RX_CHARACTERISTIC_UUID);
             
             this.isConnected = true;
-            this.updateStatus('Bağlı', true);
+            this.updateStatus('Bluetooth ile Bağlı 🔵', true);
             this.connectBtn.disabled = true;
             this.disconnectBtn.disabled = false;
             
@@ -116,45 +233,19 @@ class MicrobitTemperatureMonitor {
             });
             
         } catch (error) {
-            this.log('Bağlantı hatası: ' + error.message, 'error');
-            console.error('Connection error:', error);
+            this.log('Bluetooth bağlantı hatası: ' + error.message, 'error');
+            console.error('Bluetooth connection error:', error);
             this.updateStatus('Bağlantı Hatası', false);
         }
     }
     
-    async disconnect() {
-        try {
-            if (this.device && this.device.gatt.connected) {
-                await this.device.gatt.disconnect();
-                this.log('Bağlantı kesildi', 'info');
-            }
-        } catch (error) {
-            this.log('Bağlantı kesme hatası: ' + error.message, 'error');
-        }
-    }
-    
-    onDisconnected() {
-        this.isConnected = false;
-        this.device = null;
-        this.server = null;
-        this.uartService = null;
-        this.rxCharacteristic = null;
-        this.txCharacteristic = null;
-        
-        this.updateStatus('Bağlantı Kesildi', false);
-        this.connectBtn.disabled = false;
-        this.disconnectBtn.disabled = true;
-        
-        this.log('Micro:bit bağlantısı kesildi', 'warning');
-    }
-    
-    handleData(value) {
+    handleBluetoothData(value) {
         try {
             // Convert DataView to string
             const decoder = new TextDecoder();
             const message = decoder.decode(value).trim();
             
-            this.log('Alınan veri: ' + message, 'info');
+            this.log('Bluetooth: ' + message, 'info');
             
             // Parse message format: TEMP:value:timestamp
             if (message.startsWith('TEMP:')) {
@@ -172,6 +263,46 @@ class MicrobitTemperatureMonitor {
             this.log('Veri işleme hatası: ' + error.message, 'error');
             console.error('Data handling error:', error);
         }
+    }
+    
+    async disconnect() {
+        try {
+            if (this.connectionType === 'usb' && this.port) {
+                // Close USB port
+                if (this.reader) {
+                    await this.reader.cancel();
+                    await this.readableStreamClosed.catch(() => {});
+                }
+                await this.port.close();
+                this.port = null;
+                this.reader = null;
+                this.log('USB bağlantısı kesildi', 'info');
+            } else if (this.connectionType === 'bluetooth' && this.device && this.device.gatt.connected) {
+                await this.device.gatt.disconnect();
+                this.log('Bluetooth bağlantısı kesildi', 'info');
+            }
+            
+            this.onDisconnected();
+        } catch (error) {
+            this.log('Bağlantı kesme hatası: ' + error.message, 'error');
+        }
+    }
+    
+    onDisconnected() {
+        this.isConnected = false;
+        this.device = null;
+        this.server = null;
+        this.uartService = null;
+        this.rxCharacteristic = null;
+        this.txCharacteristic = null;
+        this.port = null;
+        this.reader = null;
+        
+        this.updateStatus('Bağlantı Kesildi', false);
+        this.connectBtn.disabled = false;
+        this.disconnectBtn.disabled = true;
+        
+        this.log('Bağlantı kesildi', 'warning');
     }
     
     updateTemperature(temp, timestamp) {
@@ -273,4 +404,3 @@ class MicrobitTemperatureMonitor {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new MicrobitTemperatureMonitor();
 });
-

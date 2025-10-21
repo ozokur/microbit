@@ -2,6 +2,28 @@
 
 Micro:bit Sıcaklık İzleme Sistemi için tüm önemli değişiklikler bu dosyada belgelenmiştir.
 
+## [1.2.0] - 2025-10-21
+
+### 🎯 Yeni Özellikler
+- **İki Bağlantı Tipi Seçeneği:** Artık USB Serial veya Bluetooth seçebilirsiniz!
+  - 🔌 **USB Serial**: Hızlı, stabil, kablolu bağlantı (Web Serial API)
+  - 🔵 **Bluetooth**: Kablosuz bağlantı (Web Bluetooth API)
+- Modern radio button UI ile kolay seçim
+- Her iki bağlantı tipi için ayrı veri işleme
+
+### İyileştirmeler
+- Web Serial API desteği eklendi
+- USB üzerinden direkt veri okuma
+- Bluetooth ve USB arasında anlık geçiş
+- Daha iyi hata yönetimi
+- API desteği kontrolleri (başlangıçta log)
+
+### Teknik Detaylar
+- Web Serial API (Chrome 89+)
+- 115200 baud rate ile USB iletişimi
+- Satır bazlı veri parsing (her iki mod için)
+- Otomatik bağlantı tipi algılama
+
 ## [1.1.0] - 2025-10-21
 
 ### Değişiklikler
